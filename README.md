@@ -1,21 +1,23 @@
 # ai-unit-test-generator-dio
 
-projeto de estudo para gerar testes unitarios automaticamente com python, langchain e uma estrutura preparada para azure openai.
+projeto de estudo da dio sobre geração de testes unitários com python.
 
-a ideia e simples: o programa le um arquivo python, monta um prompt com instrucoes para criacao de testes e salva um arquivo `test_*.py` pronto para rodar com pytest.
+a ideia é simples: ler arquivos `.py`, montar um prompt, simular a resposta de uma llm local e salvar testes em pytest na pasta `generated_tests/`.
 
-por enquanto, o projeto usa um mock llm local. isso deixa tudo mais facil de executar, sem depender de chave da azure, conta ativa ou consumo de api. mesmo assim, a organizacao ja deixa claro onde uma integracao real com azure openai entraria depois.
+o projeto usa langchain para organizar o prompt, um mock llm local para não depender de chave de api, engenharia de prompts para guiar a geração dos testes e pytest para validar o resultado.
+
+a estrutura também está preparada para uma integração com azure openai, mas aqui ela fica só como base de estudo. o fluxo usado no projeto roda com o mock local.
 
 ## objetivo
 
-criar um agente simples em python capaz de:
+criar um gerador simples que:
 
-- ler um arquivo `.py`
-- gerar testes unitarios com pytest
-- salvar os testes em `generated_tests/`
-- cobrir casos de sucesso
-- cobrir casos de erro quando fizer sentido
-- manter uma arquitetura simples para evoluir para azure openai
+- lê um arquivo python
+- gera testes unitários com pytest
+- salva os testes em `generated_tests/`
+- cobre casos de sucesso
+- cobre casos de erro quando faz sentido
+- mantém uma estrutura fácil de adaptar para azure openai
 
 ## como funciona
 
@@ -23,14 +25,16 @@ o fluxo principal fica em `app/generator.py`.
 
 ele faz quatro coisas:
 
-1. le o arquivo python de entrada
+1. lê o arquivo python de entrada
 2. monta um prompt usando `app/prompts.py`
-3. chama o `MockLLM`, que simula a resposta de um modelo
+3. chama o `MockLLM`, que simula uma resposta de modelo
 4. salva o teste gerado na pasta `generated_tests/`
 
-os exemplos ficam em `examples/` e os testes gerados ficam em `generated_tests/`.
+os arquivos de exemplo ficam em `examples/`.
 
-## arquitetura
+os testes gerados ficam em `generated_tests/`.
+
+## estrutura
 
 ```text
 ai-unit-test-generator-dio/
@@ -38,6 +42,11 @@ ai-unit-test-generator-dio/
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
+├── app/
+│   ├── generator.py
+│   ├── mock_llm.py
+│   ├── prompts.py
+│   └── utils.py
 ├── docs/
 │   └── entrega_dio.md
 ├── examples/
@@ -46,26 +55,28 @@ ai-unit-test-generator-dio/
 ├── generated_tests/
 │   ├── test_calculator.py
 │   └── test_string_utils.py
-├── app/
-│   ├── generator.py
-│   ├── prompts.py
-│   ├── mock_llm.py
-│   └── utils.py
 └── README-assets/
-    └── .gitkeep
+    ├── generated_calculator_tests.png
+    ├── generated_string_tests.png
+    ├── project_structure.png
+    └── pytest_success.png
 ```
 
 ## uso do langchain
 
-o langchain aparece na montagem do prompt, usando `PromptTemplate`.
+o langchain é usado na montagem do prompt com `PromptTemplate`.
 
-isso deixa o prompt separado do codigo principal e facilita ajustes na engenharia de prompts sem mexer no fluxo do gerador.
+isso deixa o texto do prompt separado do gerador e facilita ajustes na engenharia de prompts sem mexer no restante do fluxo.
 
-o projeto ainda nao chama um modelo real. essa decisao foi intencional para manter o desafio executavel em qualquer maquina.
+## mock llm local
 
-## integracao futura com azure
+o projeto usa um mock llm local para gerar respostas previsíveis.
 
-o arquivo `.env.example` ja traz as variaveis esperadas para uma futura integracao:
+isso ajuda no estudo porque o projeto roda sem azure, sem chave de api e sem consumo externo. a ideia principal continua aparecendo: transformar código fonte em contexto para uma llm e receber testes prontos para executar.
+
+## estrutura para azure openai
+
+o arquivo `.env.example` mostra as variáveis esperadas para uma integração com azure openai:
 
 ```env
 AZURE_OPENAI_ENDPOINT=
@@ -73,20 +84,46 @@ AZURE_OPENAI_KEY=
 AZURE_OPENAI_DEPLOYMENT=
 ```
 
-em uma evolucao natural, o `MockLLM` pode ser trocado por uma classe usando azure openai. o restante do fluxo pode continuar praticamente igual.
+essa estrutura existe para deixar o projeto preparado para adaptação. neste estudo, o fluxo executado usa o `MockLLM`.
 
 ## engenharia de prompts
 
-o prompt pede que a resposta tenha:
+o prompt orienta a geração para retornar:
 
-- codigo python valido
+- código python válido
 - testes com pytest
-- funcoes com prefixo `test_`
+- funções com prefixo `test_`
 - casos positivos
 - casos de erro quando fizer sentido
-- nenhum markdown na resposta
+- resposta sem markdown
 
-isso ajuda a gerar um arquivo que possa ser salvo e executado diretamente.
+com isso, o conteúdo gerado pode ser salvo direto em um arquivo de teste.
+
+## exemplos usados
+
+`examples/calculator.py` tem funções simples de calculadora:
+
+- soma
+- subtração
+- multiplicação
+- divisão
+
+a função de divisão lança `ValueError` quando o divisor é zero.
+
+`examples/string_utils.py` tem funções simples para texto:
+
+- inverter texto
+- contar caracteres
+- transformar texto para maiúsculo
+
+## o que foi feito
+
+- leitura de arquivos python
+- geração de testes pytest
+- testes para funções de calculadora
+- testes para funções de string
+- execução com pytest
+- resultado final com 12 testes passando
 
 ## como executar
 
@@ -102,25 +139,25 @@ no windows:
 .venv\Scripts\activate
 ```
 
-instale as dependencias:
+instale as dependências:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-gere testes para o exemplo da calculadora:
+gere testes para a calculadora:
 
 ```bash
 python -m app.generator examples/calculator.py
 ```
 
-gere testes para o exemplo de texto:
+gere testes para as funções de string:
 
 ```bash
 python -m app.generator examples/string_utils.py
 ```
 
-## como rodar pytest
+## como rodar os testes
 
 execute:
 
@@ -134,52 +171,22 @@ ou rode apenas a pasta de testes gerados:
 pytest generated_tests
 ```
 
-## exemplos
-
-`examples/calculator.py` contem funcoes simples de calculadora:
-
-- soma
-- subtracao
-- multiplicacao
-- divisao
-
-a funcao `divisao` lanca `ValueError` quando o divisor e zero.
-
-`examples/string_utils.py` contem funcoes simples para texto:
-
-- inverter texto
-- contar caracteres
-- transformar para maiusculo
-
 ## prints do projeto
 
-sugestao de prints para colocar na entrega:
+### pytest passando
+![pytest passando](README-assets/pytest_success.png)
 
-- estrutura de pastas no editor
-- terminal rodando `python -m app.generator examples/calculator.py`
-- terminal rodando `python -m app.generator examples/string_utils.py`
-- terminal com o resultado do `pytest`
-- arquivo `generated_tests/test_calculator.py` aberto
-- arquivo `generated_tests/test_string_utils.py` aberto
+### estrutura do projeto
+![estrutura do projeto](README-assets/project_structure.png)
 
-## aprendizados
+### testes gerados para string_utils
+![testes string utils](README-assets/generated_string_tests.png)
 
-este projeto ajuda a praticar a ligacao entre ia generativa e testes automatizados.
+### testes gerados para calculator
+![testes calculator](README-assets/generated_calculator_tests.png)
 
-mesmo com um mock llm, o fluxo mostra bem a ideia principal: transformar codigo fonte em um prompt, gerar testes e validar tudo com pytest.
+## conclusão
 
-tambem fica claro que bons prompts precisam ser objetivos. quanto mais direta for a instrucao, maior a chance de receber um teste util e executavel.
+este é um projeto educacional, feito para praticar a ligação entre ia generativa e testes automatizados.
 
-## proximos passos
-
-- criar uma classe real para azure openai
-- permitir escolher entre mock e azure via `.env`
-- melhorar a analise do codigo com `ast`
-- gerar testes para mais tipos de funcoes
-- adicionar validacao automatica do codigo gerado
-
-## conclusao
-
-o projeto e educacional, simples e focado em pratica.
-
-ele nao tenta ser uma ferramenta completa de mercado. o objetivo e mostrar, de forma organizada, como python, langchain, prompts e pytest podem trabalhar juntos para automatizar parte da criacao de testes unitarios.
+mesmo usando um mock llm, o fluxo mostra a ideia central: ler código, montar um prompt, gerar testes e validar tudo com pytest.
